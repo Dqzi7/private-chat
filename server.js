@@ -7,7 +7,7 @@ const mongoose = require('mongoose');
 
 const PORT = process.env.PORT || 4000;
 
-// الرابط السحابي الخاص بك
+// الرابط السحابي لقاعدة البيانات
 const MONGO_URI = 'mongodb+srv://dqmoham_db_user:GDMhMVUogDvYYTFd@cluster0.13nyzua.mongodb.net/?appName=Cluster0';
 
 mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
@@ -17,14 +17,14 @@ mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
     })
     .catch(err => console.log('خطأ في الاتصال بالقاعدة:', err));
 
-// تعريف مخطط المستخدمين
+// مخطط المستخدمين
 const userSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true }
 });
 const User = mongoose.model('User', userSchema);
 
-// دالة لإنشاء المستخدم الأساسي داود تلقائياً
+// إنشاء المستخدم الأساسي داود تلقائياً
 async function createDefaultUser() {
     try {
         const existUser = await User.findOne({ username: 'dawood' });
@@ -40,7 +40,7 @@ async function createDefaultUser() {
     }
 }
 
-// تعريف مخطط الرسائل
+// مخطط الرسائل
 const messageSchema = new mongoose.Schema({
     type: String,
     sender: String,
@@ -50,8 +50,9 @@ const messageSchema = new mongoose.Schema({
 const Message = mongoose.model('Message', messageSchema);
 
 app.use(express.json({ limit: '10mb' }));
-app.use(express.static(__dirname));
+app.use(express.static(path.join(__dirname)));
 
+// التوجيه لصفحة index.html
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
@@ -69,7 +70,10 @@ app.get('/api/messages', async (req, res) => {
 // تسجيل الدخول
 app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
-    const user = await User.findOne({ username: new RegExp('^'+username+'$', 'i'), password });
+    const user = await User.findOne({ 
+        username: new RegExp('^' + username + '$', 'i'), 
+        password 
+    });
     
     if (user) {
         res.json({ success: true, message: 'تم الدخول بنجاح' });
@@ -82,7 +86,7 @@ app.post('/api/login', async (req, res) => {
 app.post('/api/users/add', async (req, res) => {
     const { username, password } = req.body;
     try {
-        const exists = await User.findOne({ username: new RegExp('^'+username+'$', 'i') });
+        const exists = await User.findOne({ username: new RegExp('^' + username + '$', 'i') });
         if (exists) {
             return res.json({ success: false, message: 'هذا المستخدم موجود بالفعل!' });
         }
@@ -99,7 +103,7 @@ app.post('/api/users/add', async (req, res) => {
 app.post('/api/users/delete', async (req, res) => {
     const { username } = req.body;
     try {
-        const result = await User.deleteOne({ username: new RegExp('^'+username+'$', 'i') });
+        const result = await User.deleteOne({ username: new RegExp('^' + username + '$', 'i') });
         if (result.deletedCount > 0) {
             res.json({ success: true, message: 'تم حذف المستخدم بنجاح' });
         } else {
@@ -110,6 +114,7 @@ app.post('/api/users/delete', async (req, res) => {
     }
 });
 
+// اتصال Socket.io
 io.on('connection', (socket) => {
     console.log('مستخدم جديد اتصل بالمساحة الآمنة');
 

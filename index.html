@@ -65,73 +65,98 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        const socket = io(window.location.origin);
+        // استخدام الرابط السحابي المباشر لـ Render لمنع أخطاء التوجيه والمسارات
+        const serverUrl = window.location.origin.includes('localhost') 
+            ? window.location.origin 
+            : 'https://private-chat-dawood.onrender.com';
+
+        const socket = io(serverUrl);
         let currentUser = "";
         let mediaRecorder;
         let audioChunks = [];
 
-        // جلب الرسائل عند فتح الشات
+        // جلب الرسائل المحفوظة من السيرفر
         async function loadMessages() {
-            const response = await fetch('/api/messages');
-            const messages = await response.json();
-            const messagesDiv = document.getElementById('messages');
-            messagesDiv.innerHTML = '';
-            messages.forEach(msg => {
-                appendMessage(msg);
-            });
+            try {
+                const response = await fetch(`${serverUrl}/api/messages`);
+                const messages = await response.json();
+                const messagesDiv = document.getElementById('messages');
+                messagesDiv.innerHTML = '';
+                messages.forEach(msg => {
+                    appendMessage(msg);
+                });
+            } catch (err) {
+                console.log("خطأ في جلب الرسائل:", err);
+            }
         }
 
         async function login() {
-            const user = document.getElementById('username').value;
-            const pass = document.getElementById('password').value;
+            const user = document.getElementById('username').value.trim();
+            const pass = document.getElementById('password').value.trim();
 
-            const response = await fetch('/api/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: user, password: pass })
-            });
-            const data = await response.json();
+            try {
+                const response = await fetch(`${serverUrl}/api/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: user, password: pass })
+                });
+                const data = await response.json();
 
-            if(data.success) {
-                currentUser = user;
-                document.getElementById('login-card').style.display = 'none';
-                document.getElementById('chat-room').style.display = 'block';
-                
-                // تحميل الرسائل القديمة عند الدخول
-                await loadMessages();
+                if(data.success) {
+                    currentUser = user;
+                    document.getElementById('login-card').style.display = 'none';
+                    document.getElementById('chat-room').style.display = 'block';
+                    
+                    // تحميل الرسائل القديمة
+                    await loadMessages();
 
-                if(user.toLowerCase() === 'dawood' || user.toLowerCase() === 'admin') {
-                    document.getElementById('admin-section').style.display = 'block';
+                    if(user.toLowerCase() === 'dawood' || user.toLowerCase() === 'admin') {
+                        document.getElementById('admin-section').style.display = 'block';
+                    }
+                } else {
+                    alert(data.message);
                 }
-            } else {
-                alert(data.message);
+            } catch(e) {
+                alert("حدث خطأ أثناء الاتصال بالسيرفر");
             }
         }
 
         async function addUser() {
-            const user = document.getElementById('new-user').value;
-            const pass = document.getElementById('new-pass').value;
-            const response = await fetch('/api/users/add', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: user, password: pass })
-            });
-            const data = await response.json();
-            alert(data.message);
-            document.getElementById('new-user').value = '';
-            document.getElementById('new-pass').value = '';
+            const user = document.getElementById('new-user').value.trim();
+            const pass = document.getElementById('new-pass').value.trim();
+            if(!user || !pass) return alert("الرجاء إدخال اسم المستخدم وكلمة المرور");
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/users/add`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: user, password: pass })
+                });
+                const data = await response.json();
+                alert(data.message);
+                document.getElementById('new-user').value = '';
+                document.getElementById('new-pass').value = '';
+            } catch(e) {
+                alert("خطأ في إضافة المستخدم");
+            }
         }
 
         async function deleteUser() {
-            const user = document.getElementById('del-user').value;
-            const response = await fetch('/api/users/delete', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: user })
-            });
-            const data = await response.json();
-            alert(data.message);
-            document.getElementById('del-user').value = '';
+            const user = document.getElementById('del-user').value.trim();
+            if(!user) return alert("الرجاء إدخال اسم المستخدم للحذف");
+            
+            try {
+                const response = await fetch(`${serverUrl}/api/users/delete`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: user })
+                });
+                const data = await response.json();
+                alert(data.message);
+                document.getElementById('del-user').value = '';
+            } catch(e) {
+                alert("خطأ في حذف المستخدم");
+            }
         }
 
         function sendMessage() {
@@ -155,7 +180,7 @@
             }
         }
 
-        // نظام تسجيل الصوت
+        // تسجيل الصوت
         async function toggleRecording() {
             const btn = document.getElementById('record-btn');
             if (!mediaRecorder || mediaRecorder.state === "inactive") {
@@ -186,7 +211,7 @@
             }
         }
 
-        // دالة عرض الرسالة في الصندوق
+        // دالة عرض الرسالة في صندوق المحادثة
         function appendMessage(msg) {
             const messagesDiv = document.getElementById('messages');
             const item = document.createElement('div');
@@ -208,7 +233,7 @@
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
 
-        // استقبال الرسائل المباشرة وعرضها
+        // الاستقبال المباشر للرسائل
         socket.on('chat message', (msg) => {
             appendMessage(msg);
         });
