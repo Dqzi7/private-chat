@@ -5,7 +5,7 @@ const io = require('socket.io')(http);
 const path = require('path');
 const mongoose = require('mongoose');
 
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 10000; // تم ضبط المنفذ ليتوافق مع رندر
 
 // الرابط السحابي لقاعدة البيانات
 const MONGO_URI = 'mongodb+srv://dqmoham_db_user:GDMhMVUogDvYYTFd@cluster0.13nyzua.mongodb.net/?appName=Cluster0';
@@ -83,6 +83,23 @@ app.post('/api/login', async (req, res) => {
 });
 
 // إضافة مستخدم جديد
+app.post('/api/users/add', async (req, res) => {
+    const { username, password } = req.body;
+    try {
+        const exists = await User.findOne({ username: new RegExp('^' + username + '$', 'i') });
+        if (exists) {
+            return res.json({ success: false, message: 'هذا المستخدم موجود بالفعل!' });
+        }
+        
+        const newUser = new User({ username, password });
+        await newUser.save();
+        res.json({ success: true, message: 'تم إضافة المستخدم بنجاح' });
+    } catch (e) {
+        res.json({ success: false, message: 'حدث خطأ أثناء الإضافة' });
+    }
+});
+
+// حذف مستخدم
 app.post('/api/users/add', async (req, res) => {
     const { username, password } = req.body;
     try {

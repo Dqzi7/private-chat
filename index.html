@@ -65,10 +65,8 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        // استخدام الرابط السحابي المباشر لـ Render لمنع أخطاء التوجيه والمسارات
-        const serverUrl = window.location.origin.includes('localhost') 
-            ? window.location.origin 
-            : 'https://private-chat-dawood.onrender.com';
+        // تم تثبيت رابط موقعك السحابي على رندر بشكل صريح لتفادي أي خطأ في الاتصال
+        const serverUrl = 'https://private-chat-dawood.onrender.com';
 
         const socket = io(serverUrl);
         let currentUser = "";
