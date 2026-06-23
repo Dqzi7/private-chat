@@ -65,10 +65,21 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        const socket = io();
+        const socket = io(window.location.origin);
         let currentUser = "";
         let mediaRecorder;
         let audioChunks = [];
+
+        // جلب الرسائل عند فتح الشات
+        async function loadMessages() {
+            const response = await fetch('/api/messages');
+            const messages = await response.json();
+            const messagesDiv = document.getElementById('messages');
+            messagesDiv.innerHTML = '';
+            messages.forEach(msg => {
+                appendMessage(msg);
+            });
+        }
 
         async function login() {
             const user = document.getElementById('username').value;
@@ -86,6 +97,9 @@
                 document.getElementById('login-card').style.display = 'none';
                 document.getElementById('chat-room').style.display = 'block';
                 
+                // تحميل الرسائل القديمة عند الدخول
+                await loadMessages();
+
                 if(user.toLowerCase() === 'dawood' || user.toLowerCase() === 'admin') {
                     document.getElementById('admin-section').style.display = 'block';
                 }
@@ -172,8 +186,8 @@
             }
         }
 
-        // استقبال الرسائل وعرضها بجميع أنواعها
-        socket.on('chat message', (msg) => {
+        // دالة عرض الرسالة في الصندوق
+        function appendMessage(msg) {
             const messagesDiv = document.getElementById('messages');
             const item = document.createElement('div');
             item.className = 'msg-item';
@@ -192,7 +206,12 @@
             item.innerHTML = contentHtml;
             messagesDiv.appendChild(item);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        } );
+        }
+
+        // استقبال الرسائل المباشرة وعرضها
+        socket.on('chat message', (msg) => {
+            appendMessage(msg);
+        });
 
         function logout() {
             location.reload();

@@ -5,7 +5,7 @@ const io = require('socket.io')(http);
 const path = require('path');
 const mongoose = require('mongoose');
 
-const PORT = 4000;
+const PORT = process.env.PORT || 4000;
 
 // الرابط السحابي الخاص بك
 const MONGO_URI = 'mongodb+srv://dqmoham_db_user:GDMhMVUogDvYYTFd@cluster0.13nyzua.mongodb.net/?appName=Cluster0';
@@ -13,7 +13,6 @@ const MONGO_URI = 'mongodb+srv://dqmoham_db_user:GDMhMVUogDvYYTFd@cluster0.13nyz
 mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(async () => {
         console.log('=== تم الاتصال بقاعدة البيانات السحابية بنجاح ===');
-        // التأكد من وجود المستخدم الأساسي dawood عند الاتصال
         await createDefaultUser();
     })
     .catch(err => console.log('خطأ في الاتصال بالقاعدة:', err));
@@ -130,5 +129,5 @@ io.on('connection', (socket) => {
 });
 
 http.listen(PORT, () => {
-    console.log("=== SERVER IS RUNNING ON PORT 4000 ===");
+    console.log(`=== SERVER IS RUNNING ON PORT ${PORT} ===`);
 });
