@@ -13,14 +13,11 @@
         .admin-panel { margin-top: 15px; padding-top: 15px; border-top: 2px dashed #ccc; display: none; }
         #chat-room { display: none; width: 550px; }
         .messages { height: 280px; border: 1px solid #ccc; overflow-y: scroll; margin-bottom: 10px; padding: 10px; background: #fafafa; text-align: right; }
-        
         .input-group { display: flex; gap: 5px; margin-top: 10px; }
         .input-group input { flex-grow: 1; margin: 0; }
-        
         .media-buttons { display: flex; gap: 5px; margin-top: 5px; }
         .media-buttons button { flex-grow: 1; font-size: 14px; background-color: #007bff; }
         .media-buttons button.record-btn { background-color: #dc3545; }
-        
         .msg-media { max-width: 200px; max-height: 150px; border-radius: 6px; display: block; margin-top: 5px; }
         .msg-audio { width: 100%; margin-top: 5px; }
         .msg-item { border-bottom: 1px solid #eee; padding: 5px 0; }
@@ -47,7 +44,6 @@
         <div class="media-buttons">
             <button onclick="document.getElementById('media-file').click()">🖼️ صورة / فيديو</button>
             <input type="file" id="media-file" accept="image/*,video/*" style="display: none;" onchange="handleMediaUpload(event)">
-            
             <button id="record-btn" class="record-btn" onclick="toggleRecording()">🎤 تسجيل صوت</button>
         </div>
 
@@ -65,24 +61,21 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        // تم تثبيت رابط موقعك السحابي على رندر بشكل صريح لتفادي أي خطأ في الاتصال
-        const serverUrl = 'https://private-chat-dawood.onrender.com';
+        // استخدام مسار نسبي لضمان عمل الاتصال بسلاسة مع السيرفر المحلي والسحابي بدون أخطاء المنفذ
+        const serverUrl = '';
 
         const socket = io(serverUrl);
         let currentUser = "";
         let mediaRecorder;
         let audioChunks = [];
 
-        // جلب الرسائل المحفوظة من السيرفر
         async function loadMessages() {
             try {
                 const response = await fetch(`${serverUrl}/api/messages`);
                 const messages = await response.json();
                 const messagesDiv = document.getElementById('messages');
                 messagesDiv.innerHTML = '';
-                messages.forEach(msg => {
-                    appendMessage(msg);
-                });
+                messages.forEach(msg => appendMessage(msg));
             } catch (err) {
                 console.log("خطأ في جلب الرسائل:", err);
             }
@@ -104,10 +97,7 @@
                     currentUser = user;
                     document.getElementById('login-card').style.display = 'none';
                     document.getElementById('chat-room').style.display = 'block';
-                    
-                    // تحميل الرسائل القديمة
                     await loadMessages();
-
                     if(user.toLowerCase() === 'dawood' || user.toLowerCase() === 'admin') {
                         document.getElementById('admin-section').style.display = 'block';
                     }
@@ -165,7 +155,6 @@
             }
         }
 
-        // إرسال الصور والفيديوهات
         function handleMediaUpload(event) {
             const file = event.target.files[0];
             if (file) {
@@ -178,7 +167,6 @@
             }
         }
 
-        // تسجيل الصوت
         async function toggleRecording() {
             const btn = document.getElementById('record-btn');
             if (!mediaRecorder || mediaRecorder.state === "inactive") {
@@ -186,9 +174,7 @@
                 mediaRecorder = new MediaRecorder(stream);
                 audioChunks = [];
                 
-                mediaRecorder.ondataavailable = event => {
-                    audioChunks.push(event.data);
-                };
+                mediaRecorder.ondataavailable = event => audioChunks.push(event.data);
 
                 mediaRecorder.onstop = () => {
                     const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
@@ -209,7 +195,6 @@
             }
         }
 
-        // دالة عرض الرسالة في صندوق المحادثة
         function appendMessage(msg) {
             const messagesDiv = document.getElementById('messages');
             const item = document.createElement('div');
@@ -231,10 +216,7 @@
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
 
-        // الاستقبال المباشر للرسائل
-        socket.on('chat message', (msg) => {
-            appendMessage(msg);
-        });
+        socket.on('chat message', (msg) => appendMessage(msg));
 
         function logout() {
             location.reload();
