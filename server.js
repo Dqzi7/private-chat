@@ -5,42 +5,35 @@ const io = require('socket.io')(http);
 const path = require('path');
 const mongoose = require('mongoose');
 
-const PORT = process.env.PORT || 10000; // تم ضبط المنفذ ليتوافق مع رندر
-
-// الرابط السحابي لقاعدة البيانات
+const PORT = process.env.PORT || 10000;
 const MONGO_URI = 'mongodb+srv://dqmoham_db_user:GDMhMVUogDvYYTFd@cluster0.13nyzua.mongodb.net/?appName=Cluster0';
 
 mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(async () => {
-        console.log('=== تم الاتصال بقاعدة البيانات السحابية بنجاح ===');
+        console.log('=== تم الاتصال بقاعدة البيانات السحابية ===');
         await createDefaultUser();
     })
     .catch(err => console.log('خطأ في الاتصال بالقاعدة:', err));
 
-// مخطط المستخدمين
 const userSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true }
 });
 const User = mongoose.model('User', userSchema);
 
-// إنشاء المستخدم الأساسي داود تلقائياً
 async function createDefaultUser() {
     try {
         const existUser = await User.findOne({ username: 'dawood' });
         if (!existUser) {
             const defaultUser = new User({ username: 'dawood', password: '123' });
             await defaultUser.save();
-            console.log('=== تم تجهيز المستخدم الأساسي: dawood كلمة المرور: 123 ===');
-        } else {
-            console.log('=== المستخدم الأساسي dawood مسجل مسبقاً في القاعدة ===');
+            console.log('=== تم تجهيز المستخدم الأساسي داود ===');
         }
     } catch (e) {
-        console.log('حدث خطأ أثناء إنشاء المستخدم الافتراضي');
+        console.log('خطأ في إنشاء المستخدم الافتراضي');
     }
 }
 
-// مخطط الرسائل
 const messageSchema = new mongoose.Schema({
     type: String,
     sender: String,
@@ -50,14 +43,21 @@ const messageSchema = new mongoose.Schema({
 const Message = mongoose.model('Message', messageSchema);
 
 app.use(express.json({ limit: '10mb' }));
-app.use(express.static(path.join(__dirname)));
 
-// التوجيه لصفحة index.html
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
+// مسارات الـ API أولاً
+app.post('/api/login', async (req, res) => {
+    const { username, password } = req.body;
+    const user = await User.findOne({ 
+        username: new RegExp('^' + username + '$', 'i'), 
+        password 
+    });
+    if (user) {
+        res.json({ success: true, message: 'تم الدخول بنجاح' });
+    } else {
+        res.json({ success: false, message: 'اسم المستخدم أو كلمة المرور خطأ!' });
+    }
 });
 
-// جلب الرسائل المحفوظة سحابياً
 app.get('/api/messages', async (req, res) => {
     try {
         const messages = await Message.find().sort({ timestamp: 1 });
@@ -67,62 +67,25 @@ app.get('/api/messages', async (req, res) => {
     }
 });
 
-// تسجيل الدخول
-app.post('/api/login', async (req, res) => {
-    const { username, password } = req.body;
-    const user = await User.findOne({ 
-        username: new RegExp('^' + username + '$', 'i'), 
-        password 
-    });
-    
-    if (user) {
-        res.json({ success: true, message: 'تم الدخول بنجاح' });
-    } else {
-        res.json({ success: false, message: 'اسم المستخدم أو كلمة المرور خطأ!' });
-    }
-});
-
-// إضافة مستخدم جديد
 app.post('/api/users/add', async (req, res) => {
     const { username, password } = req.body;
     try {
         const exists = await User.findOne({ username: new RegExp('^' + username + '$', 'i') });
-        if (exists) {
-            return res.json({ success: false, message: 'هذا المستخدم موجود بالفعل!' });
-        }
-        
+        if (exists) return res.json({ success: false, message: 'المستخدم موجود بالفعل!' });
         const newUser = new User({ username, password });
         await newUser.save();
-        res.json({ success: true, message: 'تم إضافة المستخدم بنجاح' });
+        res.json({ success: true, message: 'تمت الإضافة بنجاح' });
     } catch (e) {
         res.json({ success: false, message: 'حدث خطأ أثناء الإضافة' });
     }
 });
 
-// حذف مستخدم
-app.post('/api/users/add', async (req, res) => {
-    const { username, password } = req.body;
-    try {
-        const exists = await User.findOne({ username: new RegExp('^' + username + '$', 'i') });
-        if (exists) {
-            return res.json({ success: false, message: 'هذا المستخدم موجود بالفعل!' });
-        }
-        
-        const newUser = new User({ username, password });
-        await newUser.save();
-        res.json({ success: true, message: 'تم إضافة المستخدم بنجاح' });
-    } catch (e) {
-        res.json({ success: false, message: 'حدث خطأ أثناء الإضافة' });
-    }
-});
-
-// حذف مستخدم
 app.post('/api/users/delete', async (req, res) => {
     const { username } = req.body;
     try {
         const result = await User.deleteOne({ username: new RegExp('^' + username + '$', 'i') });
         if (result.deletedCount > 0) {
-            res.json({ success: true, message: 'تم حذف المستخدم بنجاح' });
+            res.json({ success: true, message: 'تم الحذف بنجاح' });
         } else {
             res.json({ success: false, message: 'المستخدم غير موجود!' });
         }
@@ -131,25 +94,29 @@ app.post('/api/users/delete', async (req, res) => {
     }
 });
 
-// اتصال Socket.io
-io.on('connection', (socket) => {
-    console.log('مستخدم جديد اتصل بالمساحة الآمنة');
+// تشغيل الواجهة (Static Files)
+app.use(express.static(path.join(__dirname)));
 
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+io.on('connection', (socket) => {
+    console.log('مستخدم جديد اتصل بالمساحة');
     socket.on('chat message', async (msg) => {
         try {
             const newMessage = new Message(msg);
-            await newMessage.save(); // حفظ الرسالة في السحابة
+            await newMessage.save();
             io.emit('chat message', msg);
         } catch(e) {
             console.log('خطأ في حفظ الرسالة:', e);
         }
     });
-
     socket.on('disconnect', () => {
-        console.log('غادر مستخدم المساحة الآمنة');
+        console.log('غادر مستخدم المساحة');
     });
 });
 
 http.listen(PORT, () => {
-    console.log(`=== SERVER IS RUNNING ON PORT ${PORT} ===`);
+    console.log(`=== السيرفر يعمل على المنفذ ${PORT} ===`);
 });
